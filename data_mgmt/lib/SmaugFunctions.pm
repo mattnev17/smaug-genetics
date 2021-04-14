@@ -70,10 +70,10 @@ sub getMotif {
   my $ref2 = substr($altlocalseq, $adj, 1);
 
   my $seqp;
-  if($ref1 ~~ [qw( A C )]){
-    $seqp = "$localseq\($altlocalseq\)";
+  if($ref1 ~~ [qw( C T )]){
+    $seqp = "$localseq";
   } else {
-    $seqp = "$altlocalseq\($localseq\)";
+    $seqp = "$altlocalseq";
   }
 
   return $seqp;
@@ -87,12 +87,12 @@ sub getType {
 
   my $CAT = "${ref}${alt}";
   my $Category;
-  if($CAT ~~ [qw( AC TG )]){ $Category = "AT_CG";}
-  elsif($CAT ~~ [qw( AG TC )]){ $Category = "AT_GC";}
-  elsif($CAT ~~ [qw( AT TA )]){ $Category = "AT_TA";}
-  elsif($CAT ~~ [qw( GA CT )]){ $Category = "GC_AT";}
-  elsif($CAT ~~ [qw( GC CG )]){ $Category = "GC_CG";}
-  elsif($CAT ~~ [qw( GT CA )]){ $Category = "GC_TA";}
+  if($CAT ~~ [qw( AC TG )]){ $Category = "T>G";}
+  elsif($CAT ~~ [qw( AG TC )]){ $Category = "T>C";}
+  elsif($CAT ~~ [qw( AT TA )]){ $Category = "T>A";}
+  elsif($CAT ~~ [qw( GA CT )]){ $Category = "C>T";}
+  elsif($CAT ~~ [qw( GC CG )]){ $Category = "C>G";}
+  elsif($CAT ~~ [qw( GT CA )]){ $Category = "C>A";}
 
   if(substr($seqp, $adj, 2) eq "CG"){ $Category = "cpg_$Category";}
   return $Category;
