@@ -1,5 +1,6 @@
 ## The SMAUG (Singleton Mutation Analysis Utility with Graphics) Pipeline
 
+
 ### Summary
 
 This repository contains the scripts necessary to reproduce the analysis of genome-wide germline mutation patterns described in [Carlson et al., (2017)](http://biorxiv.org/content/early/2017/02/14/108290).
