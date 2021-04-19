@@ -15,11 +15,6 @@ my $relpath = $FindBin::Bin;
 my $configpath = dirname(dirname($relpath));
 my $config = LoadFile("$configpath/_config.yaml");
 
-# print "Script will run with the following parameters:\n";
-# for (sort keys %{$config}) {
-#     say "$_: $config->{$_}";
-# }
-
 my $adj = $config->{adj};
 my $mac = $config->{mac};
 my $binw = $config->{binw};

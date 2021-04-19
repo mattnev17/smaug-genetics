@@ -1,8 +1,6 @@
-#!/usr/local/bin/perl
-
+#!/usr/bin/perl
 ################################################################################
-# Get initial summary information from input vcfs
-#
+# Get mutation type/context information from input vcfs
 # To avoid the possibility of modifying raw vcf data, includes option to copy
 # raw vcfs to a working project directory
 ################################################################################
@@ -22,7 +20,6 @@ my $config = LoadFile("$configpath/_config.yaml");
 
 my $mac = $config->{mac};
 my $parentdir = $config->{parentdir};
-# my $inputdir = $config->{inputdir};
 my $vcftoolsdir = $config->{vcftoolsdir};
 my $rawvcfdir = $config->{rawvcfdir};
 my $rawvcfext = $config->{rawvcfext};
@@ -71,15 +68,7 @@ if ($makecopy eq "copy") {
       $i =~ s/chr//g;
 
       my $newvcf = "$parentdir/vcfs/$basename.ma.aa.$mac.vcf.gz";
-      my $ancestral = "$parentdir/reference_data/human_ancestor_GRCh37_e59/human_ancestor_$i.fa.gz";
-      my $fasta = "$parentdir/reference_data/human_g1k_v37/chr$i.fasta.gz";
-
-      # first command extracts singletons with filter PASS, including any that
-      # occur in multiallelic sites
-      my $maparse = "perl $relpath/ma_parse.pl --i $rawvcf";
-
-      # second command fills ancestral allele to AA field
-      my $aaparse = "perl $vcftoolsdir/perl/fill-aa -a $ancestral";
+      my $fasta = "$parentdir/reference_data/Homo_sapiens.GRCh38_15/chr$i.fasta.gz";
 
       # last command adds Motif and Category info fields
       my $infoparse = "perl $relpath/fill_motif.pl -a $fasta";
@@ -87,9 +76,16 @@ if ($makecopy eq "copy") {
       # pipe commands and execute
       my $pipe;
       if($mac eq "singletons"){
-        $pipe = "$maparse | $aaparse | $infoparse | bgzip -c > $newvcf";
+        my $filter = "bcftools view -i 'AC==1' -f PASS";
+        $pipe = "$filter $rawvcf | $infoparse | bgzip -c > $newvcf";
       } elsif($mac eq "common"){
         my $filter = "bcftools view -i 'AC>=10' -f PASS";
+        $pipe = "$filter $rawvcf | $infoparse | bgzip -c > $newvcf";
+      } elsif($mac eq "rare"){
+        my $filter = "bcftools view --max-af 0.0001404 -f PASS";
+        $pipe = "$filter $rawvcf | $infoparse | bgzip -c > $newvcf";
+      } elsif($mac eq "all"){
+        my $filter = "bcftools view -f PASS";
         $pipe = "$filter $rawvcf | $infoparse | bgzip -c > $newvcf";
       }
 
@@ -104,9 +100,7 @@ if ($makecopy eq "copy") {
 }
 
 ################################################################################
-# Scans input directory for vcfs and outputs summary file to get per-chromosome
-# summary files from bcftools. If running without the 'copy' argument, assumes
-# vcfs in the input directory have already been parsed for multiallelic sites
+# Scans input directory for vcfs and outputs summary file to get full genome summary file
 ################################################################################
 my $script = 1;
 
@@ -115,13 +109,7 @@ if ($script==1){
                             ->name("*$mac.vcf.gz")
                             ->maxdepth(1)
                             ->in($vcfdir);
-  my $header;
-  if($mac eq "common"){
-		$header = "\"CHR\tPOS\tREF\tALT\tAN\tMotif\tCategory\"";
-	} elsif ($mac eq "singletons"){
-		$header = "\"CHR\tPOS\tREF\tALT\tAA\tAN\tMotif\tCategory\"";
-	}
-
+  my $header = "\"CHR\tPOS\tREF\tALT\tAC\tAN\tMotif\tCategory\"";
   my $summout = "$outdir/$mac.full.summary";
   my $headercmd = "echo $header > $summout";
   forkExecWait($headercmd);
@@ -141,17 +129,10 @@ if ($script==1){
     $chr =~ s/chr//;
     my $bcfquery;
     my $outputcols;
-		if($mac eq "common"){
-			# $bcfquery = "bcftools query -i 'AC>=10 && FILTER=\"PASS\"' -r $chr"; # sanity check
-      $bcfquery = "bcftools query -r $chr";
-      $outputcols = "'%CHROM\t%POS\t%REF\t%ALT\t%INFO/AN\t%INFO/Motif\t%INFO/Category\n'";
-		} elsif ($mac eq "singletons"){
-			# $bcfquery = "bcftools query -i 'AC=1 && FILTER=\"PASS\"' -r $chr"; # sanity check
-      $bcfquery = "bcftools query -r $chr";
-      $outputcols = "'%CHROM\t%POS\t%REF\t%ALT\t%INFO/AA\t%INFO/AN\t%INFO/Motif\t%INFO/Category\n'";
-		}
 
-    # my $cmd = "$bcfquery -f $outputcols $file > $outdir/chr$chr.summary";
+    $bcfquery = "bcftools query -r chr$chr";
+    $outputcols = "'%CHROM\t%POS\t%REF\t%ALT\t%INFO/AC\t%INFO/AN\t%INFO/Motif\t%INFO/Category\n'";
+
     my $cmd = "$bcfquery -f $outputcols $file >> $summout";
 		forkExecWait($cmd);
 	}
